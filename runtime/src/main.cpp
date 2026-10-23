@@ -4872,6 +4872,15 @@ static std::string default_input_ini_text(void) {
         "rs_right = rightx+\n";
 }
 
+/* psx_keybinds_init() takes a last path component without a dot for a
+ * directory, so argv[0] fails for an executable without an extension, as on
+ * Linux. Give it the directory that input.ini and the launcher use, ending in
+ * a separator. */
+static void init_keybinds_beside_exe(const char* argv0) {
+    const std::string dir = (exe_dir_from_argv(argv0) / "").string();
+    psx_keybinds_init(dir.c_str());
+}
+
 static void load_input_config(const char* argv0) {
     set_default_controller_mapping();
 
@@ -4881,13 +4890,13 @@ static void load_input_config(const char* argv0) {
     if (!fs::exists(config_path, ec)) {
         std::ofstream out(config_path, std::ios::binary);
         if (out) out << default_input_ini_text();
-        psx_keybinds_init(argv0);
+        init_keybinds_beside_exe(argv0);
         return;
     }
 
     std::ifstream in(config_path);
     if (!in) {
-        psx_keybinds_init(argv0);
+        init_keybinds_beside_exe(argv0);
         return;
     }
 
@@ -4955,7 +4964,7 @@ static void load_input_config(const char* argv0) {
      * from input.ini's gamepad map. Loads the user's map (or writes defaults on
      * first run). The launcher may have just edited+saved this file; we re-read
      * it here so the runtime always reflects the current bindings. */
-    psx_keybinds_init(argv0);
+    init_keybinds_beside_exe(argv0);
 }
 
 static void close_player(PlayerInput& p) {
@@ -18394,7 +18403,7 @@ soft_return_lobby:
             /* The rematch launcher can rebind keys just like the first-boot
              * one; the first-boot path re-reads keybinds.ini after the
              * launcher returns, and so must this one. */
-            psx_keybinds_init(argv[0]);
+            init_keybinds_beside_exe(argv[0]);
             host_volume_set(ls.volume);
             if (rui_out_disc[0]) {
                 resolved_disc = normalize_disc_path_for_launch(rui_out_disc);
